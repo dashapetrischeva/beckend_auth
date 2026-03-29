@@ -14,12 +14,10 @@ dotenv.config()
 const app = express()
 
 // app.use(cors({ origin: 'http://localhost:5173/', credentials: true }))
-app.use(
-  cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'], // ✅ фронтенд (Vite)
-    credentials: true, // ✅ дозвіл надсилати cookie
-  })
-)
+app.use(cors({
+  origin: 'https://react-17-oyz3.onrender.com/',
+  credentials: true
+}));
 
 app.use(express.json())
 app.use(cookieParser())

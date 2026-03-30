@@ -3,12 +3,18 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { readJSON } from '../utils/fileDb.js'
 import dotenv from 'dotenv'
-
+import path from 'path';
+import { fileURLToPath } from 'url';
 dotenv.config()
 
 const router = express.Router()
 
-const usersFile = './data/users.json'
+// чтобы __dirname работал в ES-модулях
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// путь к файлу users.json
+const usersFile = path.join(__dirname, '../data/users.json');
 
 function generateAccessToken(user) {
   return jwt.sign(

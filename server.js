@@ -15,7 +15,7 @@ const app = express()
 
 // app.use(cors({ origin: 'http://localhost:5173/', credentials: true }))
 app.use(cors({
-  origin: 'https://react-17-oyz3.onrender.com',
+  origin: 'https://react-17-oyz3.onrender.com/',
   credentials: true
 }));
 
@@ -28,7 +28,4 @@ app.use('/api/users', userRoutes)
 app.use('/api/posts', postRoutes)
 app.use('/api/comments', commentRoutes)
 
-const PORT = process.env.PORT || 4000
-
-app.listen(PORT, () => console.log(`API running on port ${PORT}`))
-
+app.listen(4000, () => console.log('API on http://localhost:4000'))

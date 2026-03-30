@@ -29,4 +29,6 @@ app.use('/api/posts', postRoutes)
 app.use('/api/comments', commentRoutes)
 
 const PORT = process.env.PORT || 4000
-app.listen(PORT)
+app.listen(PORT, () => {
+  console.log('Server started', PORT)
+})

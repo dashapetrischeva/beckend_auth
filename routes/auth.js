@@ -1,20 +1,19 @@
 import express from 'express'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-import { readJSON } from '../utils/fileDb.js'
 import dotenv from 'dotenv'
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from 'path'
+import { fileURLToPath } from 'url'
+import { readJSON } from '../utils/fileDb.js'
+
 dotenv.config()
 
 const router = express.Router()
 
-// чтобы __dirname работал в ES-модулях
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-// путь к файлу users.json
-const usersFile = path.join(__dirname, '../data/users.json');
+const usersFile = path.join(__dirname, '../data/users.json')
 
 function generateAccessToken(user) {
   return jwt.sign(
@@ -25,68 +24,84 @@ function generateAccessToken(user) {
 }
 
 function generateRefreshToken(user) {
-  return jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: process.env.REFRESH_EXPIRES,
-  })
+  return jwt.sign(
+    { id: user.id },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: process.env.REFRESH_EXPIRES }
+  )
 }
 
-// Логін користувача
-
+// LOGIN
 router.post('/login', async (req, res) => {
-  // 1. Отримуємо email і password з тіла запиту
-  const { email, password } = req.body
-  // 2. Зчитуємо всіх користувачів з файлу
-  const users = await readJSON(usersFile)
-  // 3. Шукаємо користувача з таким email
-  const user = users.find((u) => u.email == email)
+  try {
+    const { email, password } = req.body
 
-  // 4. Якщо користувача не знайдено або пароль не співпадає — помилка
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).json({ error: 'Invalid credentials' })
-  }
+    const users = await readJSON(usersFile)
 
-  // 5. Генеруємо accessToken і refreshToken
-  const accessToken = generateAccessToken(user)
-  const refreshToken = generateRefreshToken(user)
+    const user = users.find((u) => u.email === email)
 
-  // 6. Відправляємо refreshToken у httpOnly cookie, а accessToken і дані користувача — у відповідь
-  res
-    .cookie('refreshToken', refreshToken, {
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' })
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password)
+
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid password' })
+    }
+
+    const accessToken = generateAccessToken(user)
+    const refreshToken = generateRefreshToken(user)
+
+    res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     })
-    .json({
-      user: { id: user.id, email: user.email, role: user.role },
-      accessToken,
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      accessToken
     })
+  } catch (error) {
+    console.error('LOGIN ERROR:', error)
+    res.status(500).json({ error: 'Server error' })
+  }
 })
 
-// Оновлення accessToken за допомогою refreshToken
-
+// REFRESH
 router.post('/refresh', async (req, res) => {
-  // 1. Отримуємо refreshToken з cookie
-  const token = req.cookies.refreshToken
-  if (!token) return res.sendStatus(401)
   try {
-    // 2. Перевіряємо refreshToken
+    const token = req.cookies.refreshToken
+
+    if (!token) return res.sendStatus(401)
+
     const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET)
-    // 3. Зчитуємо всіх користувачів з файлу
+
     const users = await readJSON(usersFile)
-    // 4. Шукаємо користувача за id з токена
-    const user = users.find((u) => u.id == payload.id)
+
+    const user = users.find((u) => u.id === payload.id)
+
     if (!user) return res.sendStatus(401)
-    // 5. Генеруємо новий accessToken
+
     const accessToken = generateAccessToken(user)
-    // 6. Відправляємо новий accessToken і дані користувача у відповідь
+
     res.json({
-      user: { id: user.id, email: user.email, role: user.role },
-      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      accessToken
     })
-  } catch {
-    // Якщо refreshToken невалідний або прострочений
-    return res.sendStatus(403)
+  } catch (error) {
+    console.error('REFRESH ERROR:', error)
+    res.sendStatus(403)
   }
 })
 

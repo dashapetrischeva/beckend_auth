@@ -28,4 +28,5 @@ app.use('/api/users', userRoutes)
 app.use('/api/posts', postRoutes)
 app.use('/api/comments', commentRoutes)
 
-app.listen(4000, () => console.log('API on http://localhost:4000'))
+const PORT = process.env.PORT || 4000
+app.listen(PORT)
